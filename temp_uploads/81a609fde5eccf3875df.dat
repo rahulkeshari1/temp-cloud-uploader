@@ -1,0 +1,36 @@
+<?php
+$uploadDir = __DIR__ . '/temp_uploads/';
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
+}
+
+function generateToken($length = 10) {
+    return bin2hex(random_bytes($length));
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
+    $filename = time() . '_' . basename($_FILES['file']['name']);
+    $token = generateToken();
+    $safeFilename = $token . '.dat';
+    $targetFile = $uploadDir . $safeFilename;
+
+    if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+        $meta = [
+            'original' => $filename,
+            'stored' => $safeFilename,
+            'uploaded_at' => time()
+        ];
+        file_put_contents("$uploadDir/$token.json", json_encode($meta));
+        echo "✅ File uploaded.<br>";
+        echo "Shareable link: <a href='download.php?file=$token'>download.php?file=$token</a>";
+    } else {
+        echo "❌ Upload failed.";
+    }
+}
+?>
+
+<h2>Upload Temporary File</h2>
+<form method="post" enctype="multipart/form-data">
+  <input type="file" name="file" required />
+  <button type="submit">Upload</button>
+</form>
